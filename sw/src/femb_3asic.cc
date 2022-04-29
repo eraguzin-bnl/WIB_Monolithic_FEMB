@@ -56,7 +56,7 @@ bool FEMB_3ASIC::configure_coldata(bool cold, FrameType frame) {
         res &= i2c_write_verify(0, i, 5, 0x52, 0x1);    //CONFIG_DRV_CML
         res &= i2c_write_verify(0, i, 5, 0x53, 0x1);    //CONGIF_DRV_BIAS_CML_INTERNAL
         res &= i2c_write_verify(0, i, 5, 0x54, 0x1);    //CONGIF_DRV_BIAS_CS_INTERNAL
-	res &= i2c_write_verify(0, i, 0, 0x11, 0x7);	//Highest LVDS IO pad strength in P3 to get LArASIC SPI working
+        res &= i2c_write_verify(0, i, 0, 0x27, 0x1F);	//Shanshan recommendation
         switch (frame) {
             case FRAME_DD:
                 res &= i2c_write_verify(0, i, 0, 1, 3);
@@ -247,7 +247,7 @@ bool FEMB_3ASIC::read_spi_status() {
 }
 
 bool FEMB_3ASIC::set_control_reg(uint8_t coldata_idx, bool ctrl_0, bool ctrl_1) {
-    return i2c_write_verify(0,coldata_idx,0,0x25,(ctrl_1?2:0)|(ctrl_0?1:0));
+    return i2c_write_verify(0,coldata_idx,0,0x26,(ctrl_1?2:0)|(ctrl_0?1:0));
 }
 
 void FEMB_3ASIC::fast_cmd(uint8_t cmd_code) {

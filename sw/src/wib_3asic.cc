@@ -391,12 +391,12 @@ bool WIB_3ASIC::configure_wib(const wib::ConfigureWIB &conf) {
                 verify_res &= femb[i]->read_spi_status();
             }
         }
-//        #ifdef SIMULATION
+        #ifdef SIMULATION
 	glog.log("Monolithic board - Ignoring SPI check\n");
         verify_res = true;
         spi_verified = true;
         break;
-//        #endif
+        #endif
         if (verify_res) {
             spi_verified = true;
             break;
