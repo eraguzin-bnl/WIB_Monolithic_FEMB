@@ -6,12 +6,11 @@
 void unpack14(const uint32_t *packed, uint16_t *unpacked) {
     for (size_t i = 0; i < 128; i++) { // i == n'th U,V,X value
         const size_t low_bit = (i*14);
-	//const size_t low_bit = (i*14) + 6;
         const size_t low_word = low_bit / 32;
         const size_t high_bit = (i+1)*14-1;
-	//const size_t high_bit = (i+1)*14+5;
         const size_t high_word = high_bit / 32;
-        //glog.log("word %li :: low %li (%li[%li]) high %li (%li[%li])\n",i,low_bit,low_word,low_bit%32,high_bit,high_word,high_bit%32);
+//        glog.log("word %li :: low %li (%li[%li]) high %li (%li[%li])\n",i,low_bit,low_word,low_bit%32,high_bit,high_word,high_bit%32);
+//	glog.log("Value of low word is %lx, value of high word is %lx\n",packed[low_word],packed[high_word]);
         if (low_word == high_word) { //all the bits are in the same word
             unpacked[i] = (packed[low_word] >> (low_bit%32)) & 0x3FFF;
 	   // if (i == 0) {
@@ -24,15 +23,8 @@ void unpack14(const uint32_t *packed, uint16_t *unpacked) {
             //glog.log("pre_mask 0x%X post_mask 0x%X\n", (0x3FFF >> (14-high_off)), ((0x3FFF << high_off) & 0x3FFF) );
             unpacked[i] = (packed[low_word] >> (low_bit%32)) & (0x3FFF >> (14-high_off));
             unpacked[i] |= (packed[high_word] << high_off) & ((0x3FFF << high_off) & 0x3FFF);
-	  //  if (i == 0) {
-	    //    glog.log("2Channel 0 data is %u\n",(unpacked[i]));
-	//			}
         }
-//	if (i == 0) {
-//	    glog.log("Packed[0] is %lx\n",packed[0]);
-//	    glog.log("Packed[1] is %lx\n",packed[1]);
-//	    glog.log("Channel 0 data is %u\n",(unpacked[i]));
-//	}
+//	glog.log("Final value is %lx\n",unpacked[i]);
     }
 }
 
@@ -80,6 +72,7 @@ void deframe_data(const frame14 *frame_buf, size_t nframes, channel_data &data, 
     }
     data.timestamp.resize(nframes);
     femb_data femb_a, femb_b;
+//    for (size_t i = 0; i < 1; i++) {
     for (size_t i = 0; i < nframes; i++) {
         unpack_frame(frame_buf+i,&femb_a,&femb_b);
         for (size_t j = 0; j < 48; j++) {

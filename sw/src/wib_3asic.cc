@@ -386,6 +386,7 @@ bool WIB_3ASIC::configure_wib(const wib::ConfigureWIB &conf) {
         }
         if (!verify_res) continue;
         FEMB_3ASIC::fast_cmd(FAST_CMD_ACT); // Perform ACT
+        FEMB_3ASIC::fast_cmd(FAST_CMD_ACT); // Perform ACT
         for (int i = 0; i < 4; i++) {
             if (conf.fembs(i).enabled()) {
                 verify_res &= femb[i]->read_spi_status();

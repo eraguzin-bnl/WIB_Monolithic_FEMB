@@ -56,7 +56,7 @@ bool FEMB_3ASIC::configure_coldata(bool cold, FrameType frame) {
         res &= i2c_write_verify(0, i, 5, 0x52, 0x1);    //CONFIG_DRV_CML
         res &= i2c_write_verify(0, i, 5, 0x53, 0x1);    //CONGIF_DRV_BIAS_CML_INTERNAL
         res &= i2c_write_verify(0, i, 5, 0x54, 0x1);    //CONGIF_DRV_BIAS_CS_INTERNAL
-        res &= i2c_write_verify(0, i, 0, 0x27, 0x1F);	//Shanshan recommendation
+	res &= i2c_write_verify(0, i, 0, 0x27, 0x1F);	//Shanshan recommendation
         switch (frame) {
             case FRAME_DD:
                 res &= i2c_write_verify(0, i, 0, 1, 3);
@@ -167,24 +167,32 @@ bool FEMB_3ASIC::configure_larasic(const larasic_conf &c) {
     bool res = true;
 
     // See LArASIC datasheet
-    uint8_t global_reg_1 = ((c.sdd ? 1 : 0) << 1) // 1 = "SEDC" buffer enabled
-                         | ((c.sdc ? 1 : 0) << 2) // 0 = dc; 1 = ac
-                         | ((c.slkh ? 1 : 0) << 3) // 1 = "RQI" * 10 enable
-                         | ((c.s16 ? 1 : 0) << 4) // 1 = ch15 high filter enable
-                         | ((c.stb ? 1 : 0) << 5) // 0 = mon analog channel; 1 = use stb1
-                         | ((c.stb1 ? 1 : 0) << 6) // 0 = mon temp; 1 = mon bandgap
-                         | ((c.slk ? 1 : 0) << 7); // 0 = 500 pA RQI; 1 = 100 pA RQI
+    uint8_t global_reg_1 = 0x0			  //SGP bit for DAC gain matching (0 is enabled, 1 is disabled)
+	    		 | ((c.sdd ? 1 : 0) << 6) // 1 = "SEDC" buffer enabled
+                         | ((c.sdc ? 1 : 0) << 5) // 0 = dc; 1 = ac
+                         | ((c.slkh ? 1 : 0) << 4) // 1 = "RQI" * 10 enable
+                         | ((c.s16 ? 1 : 0) << 3) // 1 = ch15 high filter enable
+                         | ((c.stb ? 1 : 0) << 2) // 0 = mon analog channel; 1 = use stb1
+                         | ((c.stb1 ? 1 : 0) << 1) // 0 = mon temp; 1 = mon bandgap
+                         | ((c.slk ? 1 : 0) << 0); // 0 = 500 pA RQI; 1 = 100 pA RQI
                          
-    uint8_t global_reg_2 = ((c.sdac & 0x3F) << 0) // 6 bit current scaling daq 
-                         | ((c.sdacsw1 ? 1 : 0) << 6) // 1 = connected to external test pin
-                         | ((c.sdacsw2 ? 1 : 0) << 7); // 1 = connected to DAC output
+    uint8_t global_reg_2 = (((c.sdac & 0x20) >> 5) << 2) // 6 bit current scaling daq reversed here
+	    		 | (((c.sdac & 0x10) >> 4) << 3)
+			 | (((c.sdac & 0x08) >> 3) << 4)
+			 | (((c.sdac & 0x04) >> 2) << 5)
+			 | (((c.sdac & 0x02) >> 1) << 6)
+			 | (((c.sdac & 0x01) >> 0) << 7)
+                         | ((c.sdacsw1 ? 1 : 0) << 1) // 1 = connected to external test pin
+                         | ((c.sdacsw2 ? 1 : 0) << 0); // 1 = connected to DAC output
                          
-    uint8_t channel_reg = ((c.sts ? 1 : 0) << 0) // 1 = test capacitor enabled
-                        | ((c.snc ? 1 : 0) << 1) // 0 = 900 mV baseline;1 = 200 mV baseline
-                        | ((c.gain & 0x3) << 2) // 14, 25, 7.8, 4.7 mV/fC (0 - 3)
-                        | ((c.peak_time & 0x3) << 4) // 1.0, 0.5, 3, 2 us (0 - 3)
-                        | ((c.smn ? 1 : 0) << 6) // 1 = monitor enable
-                        | ((c.sdf ? 1 : 0) << 7); // 1 = "SE" buffer enable
+    uint8_t channel_reg = ((c.sts ? 1 : 0) << 7) // 1 = test capacitor enabled
+                        | ((c.snc ? 1 : 0) << 6) // 0 = 900 mV baseline;1 = 200 mV baseline
+			| ((c.gain & 0x1) << 5)
+                        | ((c.gain & 0x2) << 3) // 14, 25, 7.8, 4.7 mV/fC (0 - 3) reversed here
+			| ((c.peak_time & 0x1) << 3)
+                        | ((c.peak_time & 0x2) << 1) // 1.0, 0.5, 3, 2 us (0 - 3) reversed here
+                        | ((c.smn ? 1 : 0) << 1) // 1 = monitor enable
+                        | ((c.sdf ? 1 : 0) << 0); // 1 = "SE" buffer enable
                         
     // See COLDATA datasheet
     // MSB goes first
@@ -193,18 +201,26 @@ bool FEMB_3ASIC::configure_larasic(const larasic_conf &c) {
     
     for (uint8_t i = 2; i < 4; i++) { // For each COLDATA on FEMB
         for (uint8_t page = 1; page <= 4; page++) { // For each LArASIC page in COLDATA
-            for (uint8_t addr = 0x80; addr < 0x90; addr++) { // set channel registers
+            for (uint8_t addr = 0x82; addr < 0x92; addr++) { // set channel registers
                 res &= i2c_write_verify(0, i, page, addr, channel_reg);
+		//glog.log("Channel %lx is %lx\n",(addr-0x80),channel_reg);
             }
-            res &= i2c_write_verify(0, i, page, 0x90, global_reg_1);
-            res &= i2c_write_verify(0, i, page, 0x91, global_reg_2);
+            res &= i2c_write_verify(0, i, page, 0x80, global_reg_2);
+            res &= i2c_write_verify(0, i, page, 0x81, global_reg_1);
             
             // COLDATA calibration stobe parameters
             res &= i2c_write_verify(0, i, page, 0x06, c.cal_skip);
             res &= i2c_write_verify(0, i, page, 0x07, c.cal_delay);
             res &= i2c_write_verify(0, i, page, 0x08, c.cal_length);
+
+	    //glog.log("Register 0x90 is %lx\n",global_reg_1);
+	    //glog.log("Register 0x91 is %lx\n",global_reg_2);
+	    //glog.log("Register 0x06 is %lx\n",c.cal_skip);
+	    //glog.log("Register 0x07 is %lx\n",c.cal_delay);
+	    //glog.log("Register 0x08 is %lx\n",c.cal_length);
         }
-        res &= i2c_write_verify(0, i, 0, 0x20, ACT_PROGRAM_LARASIC); // ACT = Program LArASIC SPI
+       //res &= i2c_write_verify(0, i, 0, 0x20, ACT_PROGRAM_LARASIC); // ACT = Program LArASIC SPI
+       set_fast_act(ACT_PROGRAM_LARASIC);
     }
     
     if (!res) glog.log("Failed to store LArASIC configuration for FEMB:%i!\n",index);
@@ -216,6 +232,7 @@ bool FEMB_3ASIC::set_fast_act(uint8_t act_cmd) {
     for (uint8_t i = 2; i < 4; i++) {
         res &= i2c_write_verify(0, i, 0, 0x20, act_cmd);
     }
+    glog.log("Fast command buffer is now %lx\n",act_cmd);
     if (!res) glog.log("Failed to set fast act for FEMB:%i!\n",index);
     return res;
 }
@@ -257,6 +274,7 @@ void FEMB_3ASIC::fast_cmd(uint8_t cmd_code) {
         io_reg_write(&FEMB_3ASIC::coldata_fast_cmd,REG_FAST_CMD_ACT_DELAY,19);
         fast_cmd_init = true;
     }
+    glog.log("Wrote a fast command of %d\n",cmd_code);
     io_reg_write(&FEMB_3ASIC::coldata_fast_cmd,REG_FAST_CMD_CODE,cmd_code);
 }
 

@@ -493,12 +493,16 @@ size_t extract_frames(const uint32_t *buf, const size_t words, uint32_t *extract
     constexpr uint32_t PACKET_LENGTH = 119;
     size_t nframes = 0;
     for (size_t i = 0; i < words; ) {
-         //glog.log("buf %zx is %lx\n",i,buf[i]);
+//	 if (i < 1000){
+//         glog.log("buf %zx is %lx\n",i,buf[i]);
+//	 }
          if (buf[i] == SOF) { // start of frame
             //glog.log("start of frame %llu %llu\n",nframes,i);
             size_t j;
             for (j = i+1; j < i+PACKET_LENGTH; j++) {
-		//glog.log("buf %zx is %lx\n",j,buf[j]);
+//		if (i < 1000){
+//		glog.log("buf %zx is %lx\n",j,buf[j]);
+//		}
                 if (buf[j%words] == SOF || buf[j%words] == IDLE) {
                     //glog.log("bad frame word\n");
 		    i = j; // move i to j (bad frame word)
