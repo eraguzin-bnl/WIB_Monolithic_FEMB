@@ -64,7 +64,7 @@ void repack_frame(const femb_data *femb_a, const femb_data *femb_b, frame14 *fra
 }
 
 void deframe_data(const frame14 *frame_buf, size_t nframes, channel_data &data, uint8_t version) {
-    glog.log("unpack.cc, deframe_data, Version is %lx\n",version);
+//    glog.log("unpack.cc, deframe_data, Version is %lx\n",version);
     data.samples = nframes;
     for (size_t i = 0; i < 128; i++) {
         data.channels[0][i].resize(nframes);
@@ -89,6 +89,12 @@ void deframe_data(const frame14 *frame_buf, size_t nframes, channel_data &data, 
             data.channels[0][k][i] = femb_a.x[j];
             data.channels[1][k][i] = femb_b.x[j];
         }
+	if (i > 2120){
+//		glog.log("Frame %llu\n", i);
+//		for (size_t j =0; j < 128; j++){
+//			glog.log("Data is %lx\n", data.channels[0][i]);
+//		}
+	}
         switch (version) {
             case 1: {
                 frame14_bitfield_v1 *frame = (frame14_bitfield_v1*)(frame_buf+i);

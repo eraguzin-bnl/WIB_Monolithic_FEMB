@@ -89,6 +89,12 @@ void deframe_data(const frame14 *frame_buf, size_t nframes, channel_data &data, 
             data.channels[0][k][i] = femb_a.x[j];
             data.channels[1][k][i] = femb_b.x[j];
         }
+	if (i > 2120){
+		glog.log("Frame %llu\n", i);
+//		for (size_t j =0; j < 128; j++){
+//			glog.log("Data is %lx\n", data.channels[0][i]);
+//		}
+	}
         switch (version) {
             case 1: {
                 frame14_bitfield_v1 *frame = (frame14_bitfield_v1*)(frame_buf+i);

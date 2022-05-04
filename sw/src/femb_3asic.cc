@@ -233,7 +233,7 @@ bool FEMB_3ASIC::set_fast_act(uint8_t act_cmd) {
     for (uint8_t i = 2; i < 4; i++) {
         res &= i2c_write_verify(0, i, 0, 0x20, act_cmd);
     }
-    glog.log("Fast command buffer is now %lx\n",act_cmd);
+    //glog.log("Fast command buffer is now %lx\n",act_cmd);
     if (!res) glog.log("Failed to set fast act for FEMB:%i!\n",index);
     return res;
 }
@@ -275,7 +275,7 @@ void FEMB_3ASIC::fast_cmd(uint8_t cmd_code) {
         io_reg_write(&FEMB_3ASIC::coldata_fast_cmd,REG_FAST_CMD_ACT_DELAY,19);
         fast_cmd_init = true;
     }
-    glog.log("Wrote a fast command of %d\n",cmd_code);
+    //glog.log("Wrote a fast command of %d\n",cmd_code);
     io_reg_write(&FEMB_3ASIC::coldata_fast_cmd,REG_FAST_CMD_CODE,cmd_code);
 }
 

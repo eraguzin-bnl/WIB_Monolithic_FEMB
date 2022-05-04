@@ -57,6 +57,7 @@ bool FEMB_3ASIC::configure_coldata(bool cold, FrameType frame) {
         res &= i2c_write_verify(0, i, 5, 0x53, 0x1);    //CONGIF_DRV_BIAS_CML_INTERNAL
         res &= i2c_write_verify(0, i, 5, 0x54, 0x1);    //CONGIF_DRV_BIAS_CS_INTERNAL
 	res &= i2c_write_verify(0, i, 0, 0x27, 0x1F);	//Shanshan recommendation
+	res &= i2c_write_verify(0, i, 0, 0x25, 0x40);	//Lengthen SCK time during SPI write for more stability
         switch (frame) {
             case FRAME_DD:
                 res &= i2c_write_verify(0, i, 0, 1, 3);
