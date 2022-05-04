@@ -57,6 +57,7 @@ bool FEMB_3ASIC::configure_coldata(bool cold, FrameType frame) {
         res &= i2c_write_verify(0, i, 5, 0x53, 0x1);    //CONGIF_DRV_BIAS_CML_INTERNAL
         res &= i2c_write_verify(0, i, 5, 0x54, 0x1);    //CONGIF_DRV_BIAS_CS_INTERNAL
 	res &= i2c_write_verify(0, i, 0, 0x27, 0x1F);	//Shanshan recommendation
+	res &= i2c_write_verify(0, i, 0, 0x25, 0x40);	//Lengthen SCK time during SPI write for more stability
         switch (frame) {
             case FRAME_DD:
                 res &= i2c_write_verify(0, i, 0, 1, 3);
@@ -167,7 +168,7 @@ bool FEMB_3ASIC::configure_larasic(const larasic_conf &c) {
     bool res = true;
 
     // See LArASIC datasheet
-    uint8_t global_reg_1 = 0x0			  //SGP bit for DAC gain matching (0 is enabled, 1 is disabled)
+    uint8_t global_reg_1 = ((c.sgp ? 1 : 0) << 7) //SGP bit for DAC gain matching (0 is enabled, 1 is disabled)
 	    		 | ((c.sdd ? 1 : 0) << 6) // 1 = "SEDC" buffer enabled
                          | ((c.sdc ? 1 : 0) << 5) // 0 = dc; 1 = ac
                          | ((c.slkh ? 1 : 0) << 4) // 1 = "RQI" * 10 enable
