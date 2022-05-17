@@ -25,7 +25,14 @@ FEMB_3ASIC::~FEMB_3ASIC() {
 bool FEMB_3ASIC::configure_coldata(bool cold, FrameType frame) {
     bool res = true;
     //See COLDATA datasheet
+    //See https://docs.google.com/document/d/1OAhVMvBe33dMkuIEOaqZNht0cjfUtLdNoIFy0QeGKp0/edit#
     for (uint8_t i = 2; i < 4; i++) { // For each COLDATA on FEMB
+        res &= i2c_write_verify(0, i, 0, 0x3, 0x3c);    //Set Coldata 8b10b
+        res &= i2c_write_verify(0, i, 0, 0x11, 0x7);    //Set LVDS Current Strength
+        res &= i2c_write_verify(0, i, 0, 0x20, 0x5);    //Ready for ADC SYNC RESET Fast command
+        res &= i2c_write_verify(0, i, 0, 0x25, 0x40);	//Lengthen SCK time during SPI write for more stability
+        res &= i2c_write_verify(0, i, 0, 0x27, 0x1F);	//Shanshan recommendation
+
         //res &= i2c_write_verify(0, i, 5, 0x40, 0x3);    //CONFIG_PLL_ICP
         //res &= i2c_write_verify(0, i, 5, 0x41, cold ? 0x08 : 0x10);    //CONFIG_PLL_BAND
         //res &= i2c_write_verify(0, i, 5, 0x42, 0x2);    //CONFIG_PLL_LPFR
@@ -56,8 +63,7 @@ bool FEMB_3ASIC::configure_coldata(bool cold, FrameType frame) {
         res &= i2c_write_verify(0, i, 5, 0x52, 0x1);    //CONFIG_DRV_CML
         res &= i2c_write_verify(0, i, 5, 0x53, 0x1);    //CONGIF_DRV_BIAS_CML_INTERNAL
         res &= i2c_write_verify(0, i, 5, 0x54, 0x1);    //CONGIF_DRV_BIAS_CS_INTERNAL
-	res &= i2c_write_verify(0, i, 0, 0x27, 0x1F);	//Shanshan recommendation
-	res &= i2c_write_verify(0, i, 0, 0x25, 0x40);	//Lengthen SCK time during SPI write for more stability
+
         switch (frame) {
             case FRAME_DD:
                 res &= i2c_write_verify(0, i, 0, 1, 3);
@@ -83,27 +89,24 @@ bool FEMB_3ASIC::configure_coldata(bool cold, FrameType frame) {
 bool FEMB_3ASIC::configure_coldadc(bool cold, bool test_pattern, coldadc_conf *adc_conf) {
     bool res = true;
     //See COLDADC datasheet
+    //See https://docs.google.com/document/d/1OAhVMvBe33dMkuIEOaqZNht0cjfUtLdNoIFy0QeGKp0/edit#
     for (uint8_t i = 4; i <= 11; i++) { // Each COLDATA is now directly accessed through the second argument
         res &= i2c_write_verify(0, i, 2, 0x01, 0x0c);  //start_data
         res &= i2c_write_verify(0, i, 2, 0x02, cold ? 0x7 : 0xF);  //lvds_current
-        if (adc_conf) {
-            res &= i2c_write_verify(0, i, 1, 0x80, adc_conf->reg_0);  //reg 0
-            res &= i2c_write_verify(0, i, 1, 0x84, adc_conf->reg_4);  //reg 4
-        } //FIXME reg 0&4 not being set without adc_conf specified presents a gotcha when reverting to defaults... power cycle or explicit set fixes
-        res &= i2c_write_verify(0, i, 1, 0x96, 0xff);  //bjt_powerdown
-        res &= i2c_write_verify(0, i, 1, 0x97, 0x2f);  //ref_bias
-        res &= i2c_write_verify(0, i, 1, 0x93, 0x04);  //internal_ref
-        res &= i2c_write_verify(0, i, 1, 0x9C, 0x15);  //vt45uA
-        res &= i2c_write_verify(0, i, 1, 0x98, adc_conf ? adc_conf->reg_24 : (cold ? 0xC7 : 0xFF));  //reg 24 vrefp_ctrl_cmos //shanshan cold 0xE0
-        res &= i2c_write_verify(0, i, 1, 0x99, adc_conf ? adc_conf->reg_25 : (cold ? 0x2D : 0x00));  //reg 25 vrefn_ctrl_cmos //shanshan cold 0x10
-        res &= i2c_write_verify(0, i, 1, 0x9a, adc_conf ? adc_conf->reg_26 : (cold ? 0x7A : 0x80));  //reg 26 vcmo_ctrl_cmos  //shanshan cold 0x87
-        res &= i2c_write_verify(0, i, 1, 0x9b, adc_conf ? adc_conf->reg_27 : (cold ? 0x5C : 0x60));  //reg 27 vcmi_ctrl_cmos  //shanshan cold 0x60
-        res &= i2c_write_verify(0, i, 1, 0x9d, adc_conf ? adc_conf->reg_29 : 0x27);  //reg 29 ibuff0_cmos
-        res &= i2c_write_verify(0, i, 1, 0x9e, adc_conf ? adc_conf->reg_30 : 0x27);  //reg 30 ibuff1_cmos
-        res &= i2c_write_verify(0, i, 1, 0x80, 0x63);  //sdc_bypassed
-        res &= i2c_write_verify(0, i, 1, 0x84, 0x3b);  //single-ended_input_mode
+        res &= i2c_write_verify(0, i, 1, 0x80, adc_conf ? adc_conf->reg_0 : 0x23);//sdc_bypassed
+        res &= i2c_write_verify(0, i, 1, 0x84, adc_conf ? adc_conf->reg_4 : 0x3b);//single-ended_input_mode
         res &= i2c_write_verify(0, i, 1, 0x88, 0x0b);  //ADC-bias-current-50uA
         res &= i2c_write_verify(0, i, 1, 0x89, test_pattern ? 0x18 : 0x08);  //offset_binary_output_data_format
+        res &= i2c_write_verify(0, i, 1, 0x93, 0x04);  //internal_ref
+        res &= i2c_write_verify(0, i, 1, 0x96, 0xff);  //bjt_powerdown
+        res &= i2c_write_verify(0, i, 1, 0x97, 0x2f);  //ref_bias
+        res &= i2c_write_verify(0, i, 1, 0x98, adc_conf ? adc_conf->reg_24 : 0xDF);  //reg 24 vrefp
+        res &= i2c_write_verify(0, i, 1, 0x99, adc_conf ? adc_conf->reg_25 : 0x33);  //reg 25 vrefn
+        res &= i2c_write_verify(0, i, 1, 0x9a, adc_conf ? adc_conf->reg_26 : 0x89);  //reg 26 vcmo
+        res &= i2c_write_verify(0, i, 1, 0x9b, adc_conf ? adc_conf->reg_27 : 0x67);  //reg 27 vcmi
+        res &= i2c_write_verify(0, i, 1, 0x9C, 0x15);  //vt45uA
+        res &= i2c_write_verify(0, i, 1, 0x9d, adc_conf ? adc_conf->reg_29 : 0x27);  //reg 29 ibuff0_cmos
+        res &= i2c_write_verify(0, i, 1, 0x9e, adc_conf ? adc_conf->reg_30 : 0x27);  //reg 30 ibuff1_cmos
         res &= i2c_write_verify(0, i, 1, 0xb1, 0x0c);  //config_start_number, as recommended by David
     }
     if (!res) glog.log("COLDADC configuration failed for FEMB:%i!\n",index);
